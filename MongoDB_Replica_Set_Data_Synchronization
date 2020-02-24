@@ -1,0 +1,104 @@
+mongodb version : 3.2
+OS version : ubuntu 16.04
+architecture : 3 node replica set
+
+1. Stop the member’s mongod instance 
+To ensure a clean shutdown, use the db.shutdownServer() method from the mongo shell or on Linux systems, the mongod --shutdown option.
+
+rs0:SECONDARY> use admin
+switched to db admin
+rs0:SECONDARY> db.shutdownServer()
+server should be down...
+2020-02-24T09:30:26.714+0000 I NETWORK  [thread1] trying reconnect to 127.0.0.1:27018 (127.0.0.1) failed
+2020-02-24T09:30:26.714+0000 W NETWORK  [thread1] Failed to connect to 127.0.0.1:27018, in(checking socket for error after poll), reason: errno:111 Connection refused
+2020-02-24T09:30:26.714+0000 I NETWORK  [thread1] reconnect 127.0.0.1:27018 (127.0.0.1) failed failed
+2020-02-24T09:30:26.716+0000 I NETWORK  [thread1] trying reconnect to 127.0.0.1:27018 (127.0.0.1) failed
+2020-02-24T09:30:26.717+0000 W NETWORK  [thread1] Failed to connect to 127.0.0.1:27018, in(checking socket for error after poll), reason: errno:111 Connection refused
+2020-02-24T09:30:26.717+0000 I NETWORK  [thread1] reconnect 127.0.0.1:27018 (127.0.0.1) failed failed
+> exit
+
+
+
+2. Delete all data and sub-directories from the member’s dbPath directory. Consider making a backup first.
+
+ubuntu@ip-172-31-3-193:/var/lib/mongodb/db2$ ls -lart
+total 348
+drwxr-xr-x 5 mongodb mongodb  4096 Feb 24 09:18 ..
+-rw-r--r-- 1 root    root       21 Feb 24 09:19 WiredTiger.lock
+-rw-r--r-- 1 root    root       49 Feb 24 09:19 WiredTiger
+drwxr-xr-x 2 root    root     4096 Feb 24 09:19 journal
+-rw-r--r-- 1 root    root       95 Feb 24 09:19 storage.bson
+drwxr-xr-x 2 root    root     4096 Feb 24 09:30 diagnostic.data
+-rw-r--r-- 1 root    root     4096 Feb 24 09:30 WiredTigerLAS.wt
+-rw-r--r-- 1 root    root    36864 Feb 24 09:30 sizeStorer.wt
+-rw-r--r-- 1 root    root    36864 Feb 24 09:30 _mdb_catalog.wt
+-rw-r--r-- 1 root    root    16384 Feb 24 09:30 index-8--6050893394997986380.wt
+-rw-r--r-- 1 root    root    16384 Feb 24 09:30 index-5--6050893394997986380.wt
+-rw-r--r-- 1 root    root    16384 Feb 24 09:30 index-3--6050893394997986380.wt
+-rw-r--r-- 1 root    root    16384 Feb 24 09:30 index-1--6050893394997986380.wt
+-rw-r--r-- 1 root    root    32768 Feb 24 09:30 collection-7--6050893394997986380.wt
+-rw-r--r-- 1 root    root    16384 Feb 24 09:30 collection-6--6050893394997986380.wt
+-rw-r--r-- 1 root    root    32768 Feb 24 09:30 collection-4--6050893394997986380.wt
+-rw-r--r-- 1 root    root    16384 Feb 24 09:30 collection-2--6050893394997986380.wt
+-rw-r--r-- 1 root    root    16384 Feb 24 09:30 collection-0--6050893394997986380.wt
+-rw-r--r-- 1 root    root      995 Feb 24 09:30 WiredTiger.turtle
+drwxr-xr-x 4 mongodb mongodb  4096 Feb 24 09:30 .
+-rw-r--r-- 1 root    root    61440 Feb 24 09:30 WiredTiger.wt
+-rw-r--r-- 1 root    root        0 Feb 24 09:30 mongod.lock
+ubuntu@ip-172-31-3-193:/var/lib/mongodb/db2$ sudo rm -Rf *
+ubuntu@ip-172-31-3-193:/var/lib/mongodb/db2$ ls
+
+
+3. Start the mongod process, specifying Replication Options as appropriate.
+
+
+ubuntu@ip-172-31-3-193:/var/lib/mongodb/db2$ sudo mongod --config /etc/mongod2.conf --fork
+about to fork child process, waiting until server is ready for connections.
+forked process: 3697
+child process started successfully, parent exiting
+ubuntu@ip-172-31-3-193:/var/lib/mongodb/db2$ mongo --port 27018
+MongoDB shell version: 3.2.22
+connecting to: 127.0.0.1:27018/test
+Server has startup warnings:
+2020-02-24T09:32:16.340+0000 I CONTROL  [initandlisten] ** WARNING: You are running this process as the root user, which is not recommended.
+2020-02-24T09:32:16.341+0000 I CONTROL  [initandlisten]
+2020-02-24T09:32:16.341+0000 I CONTROL  [initandlisten]
+2020-02-24T09:32:16.341+0000 I CONTROL  [initandlisten] ** WARNING: /sys/kernel/mm/transparent_hugepage/defrag is 'always'.
+2020-02-24T09:32:16.341+0000 I CONTROL  [initandlisten] **        We suggest setting it to 'never'
+2020-02-24T09:32:16.341+0000 I CONTROL  [initandlisten]
+rs0:SECONDARY>
+
+
+logfile:  you should see status changed from RECOVERING to SECONDARY
+
+2020-02-24T09:32:16.858+0000 I REPL     [ReplicationExecutor] This node is ip-172-31-3-193:27018 in the config
+2020-02-24T09:32:16.858+0000 I REPL     [ReplicationExecutor] transition to STARTUP2
+2020-02-24T09:32:16.859+0000 I REPL     [ReplicationExecutor] Member ip-172-31-3-193:27019 is now in state SECONDARY
+2020-02-24T09:32:16.859+0000 I REPL     [ReplicationExecutor] Member ip-172-31-3-193:27017 is now in state PRIMARY
+2020-02-24T09:32:16.859+0000 I REPL     [rsSync] ******
+2020-02-24T09:32:16.859+0000 I REPL     [rsSync] creating replication oplog of size: 200MB...
+2020-02-24T09:32:16.864+0000 I STORAGE  [rsSync] Starting WiredTigerRecordStoreThread local.oplog.rs
+2020-02-24T09:32:16.865+0000 I STORAGE  [rsSync] The size storer reports that the oplog contains 0 records totaling to 0 bytes
+2020-02-24T09:32:16.865+0000 I STORAGE  [rsSync] Scanning the oplog to determine where to place markers for truncation
+2020-02-24T09:32:16.894+0000 I REPL     [rsSync] ******
+2020-02-24T09:32:16.894+0000 I REPL     [rsSync] initial sync pending
+2020-02-24T09:32:16.906+0000 I REPL     [ReplicationExecutor] syncing from: ip-172-31-3-193:27017
+2020-02-24T09:32:16.908+0000 I REPL     [rsSync] initial sync ensuring correct oplog visibility. Starting at { ts: Timestamp 1582536046000|1, t: 1 }
+2020-02-24T09:32:16.908+0000 I REPL     [rsSync] initial sync drop all databases
+2020-02-24T09:32:16.908+0000 I STORAGE  [rsSync] dropAllDatabasesExceptLocal 1
+2020-02-24T09:32:16.908+0000 I REPL     [rsSync] initial sync clone all databases
+2020-02-24T09:32:16.908+0000 I REPL     [rsSync] initial sync data copy, starting syncup
+2020-02-24T09:32:16.909+0000 I REPL     [rsSync] oplog sync 1 of 3
+2020-02-24T09:32:16.909+0000 I REPL     [rsSync] oplog sync 2 of 3
+2020-02-24T09:32:16.909+0000 I REPL     [rsSync] initial sync building indexes
+2020-02-24T09:32:16.909+0000 I REPL     [rsSync] oplog sync 3 of 3
+2020-02-24T09:32:16.910+0000 I REPL     [rsSync] initial sync finishing up
+2020-02-24T09:32:16.910+0000 I REPL     [rsSync] initial sync done
+2020-02-24T09:32:16.911+0000 I REPL     [rsSync] initial sync succeeded after 1 attempt(s).
+2020-02-24T09:32:16.911+0000 I REPL     [ReplicationExecutor] transition to RECOVERING
+2020-02-24T09:32:16.912+0000 I REPL     [ReplicationExecutor] transition to SECONDARY
+2020-02-24T09:32:17.859+0000 I REPL     [ReplicationExecutor] could not find member to sync from
+2020-02-24T09:32:29.557+0000 I NETWORK  [initandlisten] connection accepted from 127.0.0.1:53698 #3 (3 connections now open)
+
+
+
